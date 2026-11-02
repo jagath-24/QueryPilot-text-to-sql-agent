@@ -1,0 +1,23 @@
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: always
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/ecommerce_demo?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: 10
+  sql:
+    init:
+      mode: never
+querypilot:
+  groq:
+    api-key: ${GROQ_API_KEY:}
+    model: ${GROQ_MODEL:openai/gpt-oss-20b}
+  jwt:
+    secret: ${JWT_SECRET:change-this-secret-to-a-long-random-value}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  rate-limit:
+    queries-per-hour: ${QUERY_RATE_LIMIT:20}

@@ -1,0 +1,53 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ecommerce_demo
+      MYSQL_USER: ${DB_USERNAME:-querypilot}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-querypilot}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+    ports: ["3308:3306"]
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./mysql/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${DB_USERNAME:-querypilot}", "-p${DB_PASSWORD:-querypilot}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  backend:
+    build: ./spring-backend
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/ecommerce_demo?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: ${DB_USERNAME:-querypilot}
+      DB_PASSWORD: ${DB_PASSWORD:-querypilot}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-to-a-long-random-value}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports: ["8080:8080"]
+  node-server:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile.node
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      DATABASE_URL: mysql://querypilot:querypilot@mysql:3306/ecommerce_demo
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports: ["3000:3000"]
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    depends_on: [node-server]
+    ports: ["5173:80"]
+volumes:
+  mysql_data:
